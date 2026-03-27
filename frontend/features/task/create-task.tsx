@@ -1,0 +1,103 @@
+"use client";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { formSchema } from "@/schema/form-schema";
+import { createTask } from "./handle-create";
+
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Field, FieldGroup } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+export default function CreateTask() {
+  const [open, setOpen] = useState(false);
+  const [serverError, setServerError] = useState("");
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      createdAt: "",
+    },
+  });
+
+  const onValidSubmit = async (data: z.infer<typeof formSchema>) => {
+    try {
+      setServerError("");
+      const result = await createTask(data);
+      if (result?.success) {
+        reset();
+
+        setOpen(false);
+      }
+    } catch (err) {
+      setServerError("no se pudo crear la tarea");
+      console.error(err);
+    }
+  };
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button className="text-white cursor-pointer bg-gradient-to-r from-violet-400 to-indigo-500">
+          + Crear Tarea
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-sm">
+        <form onSubmit={handleSubmit(onValidSubmit)}>
+          <DialogHeader>
+            <DialogTitle>Edit profile</DialogTitle>
+            <DialogDescription>
+              Make changes to your profile here. Click save when you&apos;re
+              done.
+            </DialogDescription>
+          </DialogHeader>
+          <FieldGroup>
+            <Field>
+              <Label htmlFor="title">Titulo</Label>
+              <Input {...register("title")} />
+              {errors.title && <p>{errors.title.message}</p>}
+            </Field>
+            <Field>
+              <Label htmlFor="description">Description</Label>
+              <Input {...register("description")} />
+
+              {errors.description && <p>{errors.description.message}</p>}
+            </Field>
+            <Field>
+              <Label htmlFor="createdAt">Fecha</Label>
+              <Input type="date" {...register("createdAt")} />
+              {errors.createdAt && <p>{errors.createdAt.message}</p>}
+            </Field>
+          </FieldGroup>
+          {serverError && <p>{serverError}</p>}
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Enviando..." : "Crear Task"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
